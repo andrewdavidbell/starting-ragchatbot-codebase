@@ -77,7 +77,14 @@ Provide only the direct answer to what was asked.
             api_params["tool_choice"] = {"type": "auto"}
         
         # Get response from Claude
-        response = self.client.messages.create(**api_params)
+        try:
+            response = self.client.messages.create(**api_params)
+        except anthropic.AuthenticationError as e:
+            return f"Authentication failed: Invalid API key. Please check your ANTHROPIC_API_KEY in .env file. Error: {str(e)}"
+        except anthropic.APIError as e:
+            return f"Anthropic API error: {str(e)}"
+        except Exception as e:
+            return f"Unexpected error connecting to AI service: {str(e)}"
         
         # Handle tool execution if needed
         if response.stop_reason == "tool_use" and tool_manager:
@@ -131,5 +138,12 @@ Provide only the direct answer to what was asked.
         }
         
         # Get final response
-        final_response = self.client.messages.create(**final_params)
-        return final_response.content[0].text
+        try:
+            final_response = self.client.messages.create(**final_params)
+            return final_response.content[0].text
+        except anthropic.AuthenticationError as e:
+            return f"Authentication failed during tool follow-up: Invalid API key. Please check your ANTHROPIC_API_KEY in .env file. Error: {str(e)}"
+        except anthropic.APIError as e:
+            return f"Anthropic API error during tool follow-up: {str(e)}"
+        except Exception as e:
+            return f"Unexpected error during tool follow-up: {str(e)}"
