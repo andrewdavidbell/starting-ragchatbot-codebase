@@ -35,9 +35,9 @@ class TestConfigValidation:
 
     def test_chunk_size_positive(self):
         """Test that CHUNK_SIZE is positive"""
-        assert Config.CHUNK_SIZE > 0, (
-            f"CHUNK_SIZE must be positive, got {Config.CHUNK_SIZE}"
-        )
+        assert (
+            Config.CHUNK_SIZE > 0
+        ), f"CHUNK_SIZE must be positive, got {Config.CHUNK_SIZE}"
 
     def test_chunk_size_reasonable(self):
         """Test that CHUNK_SIZE is in a reasonable range"""
@@ -52,9 +52,9 @@ class TestConfigValidation:
 
     def test_chunk_overlap_valid(self):
         """Test that CHUNK_OVERLAP is valid"""
-        assert Config.CHUNK_OVERLAP >= 0, (
-            f"CHUNK_OVERLAP must be non-negative, got {Config.CHUNK_OVERLAP}"
-        )
+        assert (
+            Config.CHUNK_OVERLAP >= 0
+        ), f"CHUNK_OVERLAP must be non-negative, got {Config.CHUNK_OVERLAP}"
         assert Config.CHUNK_OVERLAP < Config.CHUNK_SIZE, (
             f"CHUNK_OVERLAP ({Config.CHUNK_OVERLAP}) must be less than "
             f"CHUNK_SIZE ({Config.CHUNK_SIZE})"
@@ -70,9 +70,9 @@ class TestConfigValidation:
 
     def test_max_history_positive(self):
         """Test that MAX_HISTORY is positive"""
-        assert Config.MAX_HISTORY > 0, (
-            f"MAX_HISTORY must be positive, got {Config.MAX_HISTORY}"
-        )
+        assert (
+            Config.MAX_HISTORY > 0
+        ), f"MAX_HISTORY must be positive, got {Config.MAX_HISTORY}"
 
     def test_max_history_reasonable(self):
         """Test that MAX_HISTORY is in a reasonable range"""
@@ -88,16 +88,16 @@ class TestConfigValidation:
     def test_embedding_model_set(self):
         """Test that EMBEDDING_MODEL is configured"""
         assert Config.EMBEDDING_MODEL, "EMBEDDING_MODEL is not set"
-        assert isinstance(Config.EMBEDDING_MODEL, str), (
-            f"EMBEDDING_MODEL must be a string, got {type(Config.EMBEDDING_MODEL)}"
-        )
+        assert isinstance(
+            Config.EMBEDDING_MODEL, str
+        ), f"EMBEDDING_MODEL must be a string, got {type(Config.EMBEDDING_MODEL)}"
 
     def test_anthropic_model_set(self):
         """Test that ANTHROPIC_MODEL is configured"""
         assert Config.ANTHROPIC_MODEL, "ANTHROPIC_MODEL is not set"
-        assert isinstance(Config.ANTHROPIC_MODEL, str), (
-            f"ANTHROPIC_MODEL must be a string, got {type(Config.ANTHROPIC_MODEL)}"
-        )
+        assert isinstance(
+            Config.ANTHROPIC_MODEL, str
+        ), f"ANTHROPIC_MODEL must be a string, got {type(Config.ANTHROPIC_MODEL)}"
 
     def test_anthropic_model_valid(self):
         """Test that ANTHROPIC_MODEL is a known Claude model"""
@@ -105,9 +105,11 @@ class TestConfigValidation:
             "claude-3",
             "claude-sonnet",
             "claude-opus",
-            "claude-haiku"
+            "claude-haiku",
         ]
-        assert any(prefix in Config.ANTHROPIC_MODEL for prefix in valid_model_prefixes), (
+        assert any(
+            prefix in Config.ANTHROPIC_MODEL for prefix in valid_model_prefixes
+        ), (
             f"ANTHROPIC_MODEL='{Config.ANTHROPIC_MODEL}' doesn't appear to be a valid Claude model. "
             f"Expected one of: {valid_model_prefixes}"
         )
@@ -115,16 +117,16 @@ class TestConfigValidation:
     def test_docs_directory_set(self):
         """Test that DOCS_DIRECTORY is configured"""
         assert Config.DOCS_DIRECTORY, "DOCS_DIRECTORY is not set"
-        assert isinstance(Config.DOCS_DIRECTORY, str), (
-            f"DOCS_DIRECTORY must be a string, got {type(Config.DOCS_DIRECTORY)}"
-        )
+        assert isinstance(
+            Config.DOCS_DIRECTORY, str
+        ), f"DOCS_DIRECTORY must be a string, got {type(Config.DOCS_DIRECTORY)}"
 
     def test_chroma_directory_set(self):
         """Test that CHROMA_DIRECTORY is configured"""
         assert Config.CHROMA_DIRECTORY, "CHROMA_DIRECTORY is not set"
-        assert isinstance(Config.CHROMA_DIRECTORY, str), (
-            f"CHROMA_DIRECTORY must be a string, got {type(Config.CHROMA_DIRECTORY)}"
-        )
+        assert isinstance(
+            Config.CHROMA_DIRECTORY, str
+        ), f"CHROMA_DIRECTORY must be a string, got {type(Config.CHROMA_DIRECTORY)}"
 
 
 @pytest.mark.integration
@@ -134,27 +136,24 @@ class TestConfigEnvironmentVariables:
     def test_config_has_all_required_fields(self):
         """Test that Config class has all expected fields"""
         required_fields = [
-            'CHUNK_SIZE',
-            'CHUNK_OVERLAP',
-            'MAX_RESULTS',
-            'MAX_HISTORY',
-            'EMBEDDING_MODEL',
-            'ANTHROPIC_MODEL',
-            'DOCS_DIRECTORY',
-            'CHROMA_DIRECTORY'
+            "CHUNK_SIZE",
+            "CHUNK_OVERLAP",
+            "MAX_RESULTS",
+            "MAX_HISTORY",
+            "EMBEDDING_MODEL",
+            "ANTHROPIC_MODEL",
+            "DOCS_DIRECTORY",
+            "CHROMA_DIRECTORY",
         ]
 
         for field in required_fields:
-            assert hasattr(Config, field), (
-                f"Config is missing required field: {field}"
-            )
+            assert hasattr(Config, field), f"Config is missing required field: {field}"
 
     def test_config_dataclass_structure(self):
         """Test that Config is properly structured as a dataclass"""
         import dataclasses
-        assert dataclasses.is_dataclass(Config), (
-            "Config should be a dataclass"
-        )
+
+        assert dataclasses.is_dataclass(Config), "Config should be a dataclass"
 
 
 @pytest.mark.unit
@@ -243,7 +242,8 @@ class TestConfigDocumentation:
         """Test that config.py file exists and is importable"""
         try:
             import config
-            assert hasattr(config, 'Config'), "config.py must export Config class"
+
+            assert hasattr(config, "Config"), "config.py must export Config class"
         except ImportError as e:
             pytest.fail(f"Could not import config: {e}")
 
@@ -252,9 +252,9 @@ class TestConfigDocumentation:
         from config import Config
 
         # Check if class has a docstring
-        assert Config.__doc__ is not None, (
-            "Config class should have a docstring explaining configuration"
-        )
+        assert (
+            Config.__doc__ is not None
+        ), "Config class should have a docstring explaining configuration"
 
 
 @pytest.mark.integration

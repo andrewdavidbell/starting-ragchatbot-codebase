@@ -54,3 +54,59 @@ The application will be available at:
 - Web Interface: `http://localhost:8000`
 - API Documentation: `http://localhost:8000/docs`
 
+## Development Workflow
+
+### Code Quality Tools
+
+This project uses several code quality tools to maintain consistent formatting and catch potential issues:
+
+- **black**: Automatic code formatting
+- **isort**: Import statement sorting
+- **flake8**: Linting and style checking
+- **mypy**: Static type checking
+- **pytest**: Testing framework with coverage reporting
+
+### Development Scripts
+
+The following scripts are available to help maintain code quality:
+
+#### Format Code
+Automatically format code with black and sort imports with isort:
+```bash
+./format.sh
+```
+
+#### Quality Checks
+Run all quality checks (formatting, linting, type checking):
+```bash
+./quality-check.sh
+```
+
+#### Run Tests
+Execute the test suite with coverage reporting:
+```bash
+./test.sh
+```
+
+#### Complete Check
+Run formatting, quality checks, and tests in sequence:
+```bash
+./check-all.sh
+```
+
+### Recommended Development Workflow
+
+1. Make your code changes
+2. Run `./format.sh` to automatically format your code
+3. Run `./quality-check.sh` to verify code quality
+4. Run `./test.sh` to ensure tests pass
+5. Commit your changes
+
+Or simply run `./check-all.sh` to execute all steps at once before committing.
+
+### Configuration
+
+Code quality tool configurations are located in:
+- `pyproject.toml`: black, isort, mypy, and pytest settings
+- `.flake8`: flake8 configuration
+

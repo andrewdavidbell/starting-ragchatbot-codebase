@@ -1,13 +1,16 @@
 import os
 from dataclasses import dataclass
+
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
 
+
 @dataclass
 class Config:
     """Configuration settings for the RAG system"""
+
     # Anthropic API settings
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     ANTHROPIC_MODEL: str = "claude-sonnet-4-20250514"
@@ -16,13 +19,14 @@ class Config:
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
 
     # Document processing settings
-    CHUNK_SIZE: int = 800       # Size of text chunks for vector storage
-    CHUNK_OVERLAP: int = 100     # Characters to overlap between chunks
-    MAX_RESULTS: int = 5         # Maximum search results to return
-    MAX_HISTORY: int = 10        # Number of conversation messages to remember
+    CHUNK_SIZE: int = 800  # Size of text chunks for vector storage
+    CHUNK_OVERLAP: int = 100  # Characters to overlap between chunks
+    MAX_RESULTS: int = 5  # Maximum search results to return
+    MAX_HISTORY: int = 10  # Number of conversation messages to remember
 
     # Database paths
     CHROMA_PATH: str = "./chroma_db"  # ChromaDB storage location
+
 
 config = Config()
 
@@ -61,7 +65,9 @@ def validate_config():
 
     # Check CHUNK_OVERLAP is valid
     if Config.CHUNK_OVERLAP < 0:
-        errors.append(f"❌ CHUNK_OVERLAP must be non-negative, got {Config.CHUNK_OVERLAP}")
+        errors.append(
+            f"❌ CHUNK_OVERLAP must be non-negative, got {Config.CHUNK_OVERLAP}"
+        )
 
     if Config.CHUNK_OVERLAP >= Config.CHUNK_SIZE:
         errors.append(
@@ -89,9 +95,9 @@ def validate_config():
 
     # If there are errors, raise an exception
     if errors:
-        error_message = "\n\n⚠️  Configuration Validation Failed:\n" + "\n".join(f"  {e}" for e in errors)
+        error_message = "\n\n⚠️  Configuration Validation Failed:\n" + "\n".join(
+            f"  {e}" for e in errors
+        )
         raise ValueError(error_message)
 
     print("✅ Configuration validation passed")
-
-
