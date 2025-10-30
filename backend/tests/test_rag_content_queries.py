@@ -3,11 +3,12 @@ End-to-end tests for RAG system handling content-related queries
 Tests the complete flow from user query to AI response with search
 """
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from config import Config
 from rag_system import RAGSystem
 from vector_store import SearchResults
-from config import Config
 
 
 @pytest.mark.integration
@@ -16,9 +17,11 @@ class TestRAGSystemContentQueries:
 
     def test_content_query_with_valid_results(self, mock_anthropic_client, test_config):
         """Test successful content query flow with search results"""
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
 
             # Setup mocks
             mock_store = Mock()
@@ -34,7 +37,7 @@ class TestRAGSystemContentQueries:
                 documents=["MCP servers are tools that connect to Claude"],
                 metadata=[{"course_title": "Introduction to MCP", "lesson_number": 1}],
                 distances=[0.3],
-                error=None
+                error=None,
             )
             mock_store.search.return_value = search_results
             mock_store.get_lesson_link.return_value = "https://example.com/lesson1"
@@ -42,7 +45,12 @@ class TestRAGSystemContentQueries:
             # Mock AI response
             mock_ai.generate_response.return_value = (
                 "MCP servers are tools that connect to Claude and provide additional capabilities.",
-                [{"text": "Introduction to MCP - Lesson 1", "link": "https://example.com/lesson1"}]
+                [
+                    {
+                        "text": "Introduction to MCP - Lesson 1",
+                        "link": "https://example.com/lesson1",
+                    }
+                ],
             )
 
             # Create RAG system
@@ -60,9 +68,11 @@ class TestRAGSystemContentQueries:
 
     def test_content_query_with_no_results(self, mock_anthropic_client, test_config):
         """Test content query when search returns no results"""
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
 
             mock_store = Mock()
             mock_processor = Mock()
@@ -74,17 +84,14 @@ class TestRAGSystemContentQueries:
 
             # Mock empty search results
             empty_results = SearchResults(
-                documents=[],
-                metadata=[],
-                distances=[],
-                error=None
+                documents=[], metadata=[], distances=[], error=None
             )
             mock_store.search.return_value = empty_results
 
             # Mock AI response acknowledging no results
             mock_ai.generate_response.return_value = (
                 "No relevant content found for your query.",
-                []
+                [],
             )
 
             rag = RAGSystem(api_key="test-key", docs_dir="./docs")
@@ -96,9 +103,11 @@ class TestRAGSystemContentQueries:
 
     def test_content_query_with_search_error(self, mock_anthropic_client, test_config):
         """Test content query when search encounters an error"""
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
 
             mock_store = Mock()
             mock_processor = Mock()
@@ -113,14 +122,14 @@ class TestRAGSystemContentQueries:
                 documents=[],
                 metadata=[],
                 distances=[],
-                error="ChromaDB connection failed"
+                error="ChromaDB connection failed",
             )
             mock_store.search.return_value = error_results
 
             # Mock AI response handling the error
             mock_ai.generate_response.return_value = (
                 "I encountered an error searching the course materials.",
-                []
+                [],
             )
 
             rag = RAGSystem(api_key="test-key", docs_dir="./docs")
@@ -132,9 +141,11 @@ class TestRAGSystemContentQueries:
 
     def test_content_query_with_course_filter(self, mock_anthropic_client, test_config):
         """Test content query with course name filtering"""
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
 
             mock_store = Mock()
             mock_processor = Mock()
@@ -149,14 +160,14 @@ class TestRAGSystemContentQueries:
                 documents=["Specific course content"],
                 metadata=[{"course_title": "Advanced MCP", "lesson_number": 3}],
                 distances=[0.2],
-                error=None
+                error=None,
             )
             mock_store.search.return_value = search_results
             mock_store.get_lesson_link.return_value = None
 
             mock_ai.generate_response.return_value = (
                 "Information from Advanced MCP course",
-                [{"text": "Advanced MCP - Lesson 3", "link": None}]
+                [{"text": "Advanced MCP - Lesson 3", "link": None}],
             )
 
             rag = RAGSystem(api_key="test-key", docs_dir="./docs")
@@ -166,11 +177,15 @@ class TestRAGSystemContentQueries:
             assert len(sources) == 1
             assert "Advanced MCP" in sources[0]["text"]
 
-    def test_content_query_preserves_conversation_history(self, mock_anthropic_client, test_config):
+    def test_content_query_preserves_conversation_history(
+        self, mock_anthropic_client, test_config
+    ):
         """Test that conversation history is maintained across queries"""
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
 
             mock_store = Mock()
             mock_processor = Mock()
@@ -184,7 +199,7 @@ class TestRAGSystemContentQueries:
                 documents=["Content"],
                 metadata=[{"course_title": "Course", "lesson_number": 1}],
                 distances=[0.5],
-                error=None
+                error=None,
             )
 
             # First query
@@ -207,9 +222,11 @@ class TestRAGSystemContentQueries:
 
     def test_multiple_sessions_isolated(self, mock_anthropic_client, test_config):
         """Test that different sessions maintain separate conversation histories"""
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
 
             mock_store = Mock()
             mock_processor = Mock()
@@ -223,7 +240,7 @@ class TestRAGSystemContentQueries:
                 documents=["Content"],
                 metadata=[{"course_title": "Course", "lesson_number": 1}],
                 distances=[0.5],
-                error=None
+                error=None,
             )
 
             mock_ai.generate_response.return_value = ("Response", [])
@@ -252,8 +269,10 @@ class TestRAGSystemErrorHandling:
 
     def test_missing_api_key_error(self, test_config):
         """Test that missing API key is handled gracefully"""
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+        ):
 
             mock_store = Mock()
             mock_processor = Mock()
@@ -269,7 +288,7 @@ class TestRAGSystemErrorHandling:
                 documents=["Content"],
                 metadata=[{"course_title": "Course", "lesson_number": 1}],
                 distances=[0.5],
-                error=None
+                error=None,
             )
 
             # Query should handle authentication error
@@ -280,9 +299,11 @@ class TestRAGSystemErrorHandling:
 
     def test_ai_api_error_handling(self, mock_anthropic_client, test_config):
         """Test that AI API errors are handled gracefully"""
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
 
             mock_store = Mock()
             mock_processor = Mock()
@@ -296,13 +317,13 @@ class TestRAGSystemErrorHandling:
                 documents=["Content"],
                 metadata=[{"course_title": "Course", "lesson_number": 1}],
                 distances=[0.5],
-                error=None
+                error=None,
             )
 
             # Mock AI API error
             mock_ai.generate_response.return_value = (
                 "Anthropic API error: Rate limit exceeded",
-                []
+                [],
             )
 
             rag = RAGSystem(api_key="test-key", docs_dir="./docs")
@@ -330,14 +351,16 @@ class TestRAGSystemWithZeroMaxResults:
         # If MAX_RESULTS > 0, this test should pass
         assert Config.MAX_RESULTS > 0
 
-    @patch('config.Config.MAX_RESULTS', 0)
+    @patch("config.Config.MAX_RESULTS", 0)
     def test_zero_max_results_behavior(self, mock_anthropic_client, test_config):
         """
         Test that MAX_RESULTS=0 causes the system to return empty search results
         """
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
 
             mock_store = Mock()
             mock_processor = Mock()
@@ -352,12 +375,12 @@ class TestRAGSystemWithZeroMaxResults:
                 documents=[],  # Empty due to MAX_RESULTS=0
                 metadata=[],
                 distances=[],
-                error=None
+                error=None,
             )
 
             mock_ai.generate_response.return_value = (
                 "I don't have specific information about that.",
-                []
+                [],
             )
 
             rag = RAGSystem(api_key="test-key", docs_dir="./docs")
@@ -373,9 +396,11 @@ class TestRAGSystemQueryTypes:
 
     def test_broad_general_query(self, mock_anthropic_client, test_config):
         """Test handling of broad, general questions"""
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
 
             mock_store = Mock()
             mock_processor = Mock()
@@ -391,10 +416,10 @@ class TestRAGSystemQueryTypes:
                 metadata=[
                     {"course_title": "Course A", "lesson_number": 1},
                     {"course_title": "Course A", "lesson_number": 2},
-                    {"course_title": "Course B", "lesson_number": 1}
+                    {"course_title": "Course B", "lesson_number": 1},
                 ],
                 distances=[0.3, 0.4, 0.5],
-                error=None
+                error=None,
             )
 
             mock_ai.generate_response.return_value = (
@@ -402,8 +427,8 @@ class TestRAGSystemQueryTypes:
                 [
                     {"text": "Course A - Lesson 1", "link": None},
                     {"text": "Course A - Lesson 2", "link": None},
-                    {"text": "Course B - Lesson 1", "link": None}
-                ]
+                    {"text": "Course B - Lesson 1", "link": None},
+                ],
             )
 
             rag = RAGSystem(api_key="test-key", docs_dir="./docs")
@@ -414,9 +439,11 @@ class TestRAGSystemQueryTypes:
 
     def test_specific_lesson_query(self, mock_anthropic_client, test_config):
         """Test query about a specific lesson"""
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
 
             mock_store = Mock()
             mock_processor = Mock()
@@ -431,12 +458,12 @@ class TestRAGSystemQueryTypes:
                 documents=["Lesson 3 specific content"],
                 metadata=[{"course_title": "MCP Course", "lesson_number": 3}],
                 distances=[0.2],
-                error=None
+                error=None,
             )
 
             mock_ai.generate_response.return_value = (
                 "Information from Lesson 3",
-                [{"text": "MCP Course - Lesson 3", "link": None}]
+                [{"text": "MCP Course - Lesson 3", "link": None}],
             )
 
             rag = RAGSystem(api_key="test-key", docs_dir="./docs")
@@ -448,9 +475,11 @@ class TestRAGSystemQueryTypes:
 
     def test_how_to_query(self, mock_anthropic_client, test_config):
         """Test 'how to' procedural questions"""
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.DocumentProcessor') as MockDocProcessor, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.DocumentProcessor") as MockDocProcessor,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
 
             mock_store = Mock()
             mock_processor = Mock()
@@ -464,12 +493,12 @@ class TestRAGSystemQueryTypes:
                 documents=["Step-by-step instructions for creating a server"],
                 metadata=[{"course_title": "MCP Tutorial", "lesson_number": 2}],
                 distances=[0.1],
-                error=None
+                error=None,
             )
 
             mock_ai.generate_response.return_value = (
                 "To create a server, follow these steps: ...",
-                [{"text": "MCP Tutorial - Lesson 2", "link": None}]
+                [{"text": "MCP Tutorial - Lesson 2", "link": None}],
             )
 
             rag = RAGSystem(api_key="test-key", docs_dir="./docs")
