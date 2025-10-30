@@ -74,7 +74,20 @@ async function sendMessage() {
             })
         });
 
-        if (!response.ok) throw new Error('Query failed');
+        if (!response.ok) {
+            // Try to get detailed error from response
+            let errorMessage = 'Query failed';
+            try {
+                const errorData = await response.json();
+                if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                }
+            } catch (e) {
+                // If we can't parse JSON, use status text
+                errorMessage = `Query failed: ${response.status} ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
+        }
 
         const data = await response.json();
         
@@ -144,7 +157,11 @@ function addMessage(content, type, sources = null, isWelcome = false) {
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sourceElements.join(', ')}</div>
+                <div class="sources-content">
+                    <ul>
+                        ${sourceElements.map(source => `<li>${source}</li>`).join('')}
+                    </ul>
+                </div>
             </details>
         `;
     }

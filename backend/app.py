@@ -9,8 +9,11 @@ from pydantic import BaseModel
 from typing import List, Optional, Union, Dict, Any
 import os
 
-from config import config
+from config import config, validate_config
 from rag_system import RAGSystem
+
+# Validate configuration on startup
+validate_config()
 
 # Initialize FastAPI app
 app = FastAPI(title="Course Materials RAG System", root_path="")

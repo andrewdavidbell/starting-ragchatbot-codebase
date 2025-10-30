@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import Mock, patch
 from typing import List
 
-from search_tools import CourseSearchTool, ToolManager, Tool
+from search_tools import CourseSearchTool, CourseOutlineTool, ToolManager, Tool
 from vector_store import SearchResults
 from .conftest import create_search_results, create_empty_search_results
 
@@ -239,6 +239,184 @@ class TestCourseSearchTool:
         # Should handle missing metadata gracefully
         assert "[unknown]" in result
         assert "Content with missing metadata" in result
+
+
+class TestCourseOutlineTool:
+    """Unit tests for CourseOutlineTool class"""
+
+    @pytest.mark.unit
+    def test_get_tool_definition(self, mock_vector_store):
+        """Test that tool definition is correctly formatted"""
+        outline_tool = CourseOutlineTool(mock_vector_store)
+        definition = outline_tool.get_tool_definition()
+
+        assert definition["name"] == "get_course_outline"
+        assert "description" in definition
+        assert "input_schema" in definition
+
+        schema = definition["input_schema"]
+        assert schema["type"] == "object"
+        assert "course_name" in schema["properties"]
+        assert schema["required"] == ["course_name"]
+
+    @pytest.mark.unit
+    def test_execute_successful_outline_retrieval(self, mock_vector_store):
+        """Test successful retrieval of course outline"""
+        # Setup mock responses
+        mock_vector_store._resolve_course_name.return_value = "Introduction to MCP Servers"
+        mock_vector_store.get_all_courses_metadata.return_value = [
+            {
+                "title": "Introduction to MCP Servers",
+                "course_link": "http://example.com/mcp-course",
+                "instructor": "John Doe",
+                "lessons": [
+                    {"lesson_number": 0, "lesson_title": "Introduction", "lesson_link": "http://example.com/lesson0"},
+                    {"lesson_number": 1, "lesson_title": "Getting Started", "lesson_link": "http://example.com/lesson1"},
+                    {"lesson_number": 2, "lesson_title": "Advanced Features", "lesson_link": None}
+                ]
+            }
+        ]
+
+        outline_tool = CourseOutlineTool(mock_vector_store)
+        result = outline_tool.execute("MCP")
+
+        # Verify the result format
+        assert "Course: Introduction to MCP Servers" in result
+        assert "Course Link: http://example.com/mcp-course" in result
+        assert "Instructor: John Doe" in result
+        assert "Lessons:" in result
+        assert "0. Introduction - http://example.com/lesson0" in result
+        assert "1. Getting Started - http://example.com/lesson1" in result
+        assert "2. Advanced Features" in result
+
+        # Verify fuzzy matching was used
+        mock_vector_store._resolve_course_name.assert_called_once_with("MCP")
+
+    @pytest.mark.unit
+    def test_execute_with_fuzzy_course_name(self, mock_vector_store):
+        """Test that fuzzy course name matching works correctly"""
+        mock_vector_store._resolve_course_name.return_value = "Python Programming Basics"
+        mock_vector_store.get_all_courses_metadata.return_value = [
+            {
+                "title": "Python Programming Basics",
+                "course_link": "http://example.com/python",
+                "instructor": "Jane Smith",
+                "lessons": [
+                    {"lesson_number": 1, "lesson_title": "Variables", "lesson_link": None}
+                ]
+            }
+        ]
+
+        outline_tool = CourseOutlineTool(mock_vector_store)
+        result = outline_tool.execute("Python")
+
+        assert "Course: Python Programming Basics" in result
+        mock_vector_store._resolve_course_name.assert_called_once_with("Python")
+
+    @pytest.mark.unit
+    def test_execute_course_not_found(self, mock_vector_store):
+        """Test handling when course name cannot be resolved"""
+        mock_vector_store._resolve_course_name.return_value = None
+
+        outline_tool = CourseOutlineTool(mock_vector_store)
+        result = outline_tool.execute("Nonexistent Course")
+
+        assert "Course 'Nonexistent Course' not found" in result
+        assert "Please check the course name" in result
+
+    @pytest.mark.unit
+    def test_execute_course_not_in_metadata(self, mock_vector_store):
+        """Test handling when resolved course is not in metadata"""
+        mock_vector_store._resolve_course_name.return_value = "Test Course"
+        mock_vector_store.get_all_courses_metadata.return_value = [
+            {
+                "title": "Different Course",
+                "course_link": "http://example.com/different",
+                "instructor": "Someone",
+                "lessons": []
+            }
+        ]
+
+        outline_tool = CourseOutlineTool(mock_vector_store)
+        result = outline_tool.execute("Test")
+
+        assert "Course 'Test' not found in the catalogue" in result
+
+    @pytest.mark.unit
+    def test_execute_no_lessons(self, mock_vector_store):
+        """Test handling of course with no lessons"""
+        mock_vector_store._resolve_course_name.return_value = "Empty Course"
+        mock_vector_store.get_all_courses_metadata.return_value = [
+            {
+                "title": "Empty Course",
+                "course_link": "http://example.com/empty",
+                "instructor": "Test Instructor",
+                "lessons": []
+            }
+        ]
+
+        outline_tool = CourseOutlineTool(mock_vector_store)
+        result = outline_tool.execute("Empty Course")
+
+        assert "Course: Empty Course" in result
+        assert "No lessons found for this course" in result
+
+    @pytest.mark.unit
+    def test_execute_missing_optional_fields(self, mock_vector_store):
+        """Test handling when optional fields are missing"""
+        mock_vector_store._resolve_course_name.return_value = "Minimal Course"
+        mock_vector_store.get_all_courses_metadata.return_value = [
+            {
+                "title": "Minimal Course",
+                "course_link": None,  # No course link
+                "instructor": None,   # No instructor
+                "lessons": [
+                    {"lesson_number": 1, "lesson_title": "Lesson One", "lesson_link": None}
+                ]
+            }
+        ]
+
+        outline_tool = CourseOutlineTool(mock_vector_store)
+        result = outline_tool.execute("Minimal")
+
+        assert "Course: Minimal Course" in result
+        # Should show course link as not available when None
+        assert "Course Link: Not available" in result
+        # Should not include instructor line if None
+        assert "Instructor:" not in result
+        # Should still include lessons
+        assert "1. Lesson One" in result
+        # No actual HTTP links should appear
+        assert result.count("http://") == 0
+
+    @pytest.mark.unit
+    def test_format_with_all_fields(self, mock_vector_store):
+        """Test output format includes all available fields"""
+        mock_vector_store._resolve_course_name.return_value = "Complete Course"
+        mock_vector_store.get_all_courses_metadata.return_value = [
+            {
+                "title": "Complete Course",
+                "course_link": "http://example.com/complete",
+                "instructor": "Dr. Complete",
+                "lessons": [
+                    {"lesson_number": 1, "lesson_title": "First Lesson", "lesson_link": "http://example.com/l1"},
+                    {"lesson_number": 2, "lesson_title": "Second Lesson", "lesson_link": "http://example.com/l2"}
+                ]
+            }
+        ]
+
+        outline_tool = CourseOutlineTool(mock_vector_store)
+        result = outline_tool.execute("Complete")
+
+        lines = result.split("\n")
+        assert "Course: Complete Course" in lines[0]
+        assert "Course Link: http://example.com/complete" in lines[1]
+        assert "Instructor: Dr. Complete" in lines[2]
+        # Check blank line exists
+        assert lines[3] == ""
+        assert "Lessons:" in lines[4]
+        assert "1. First Lesson - http://example.com/l1" in lines[5]
+        assert "2. Second Lesson - http://example.com/l2" in lines[6]
 
 
 class TestToolManager:
