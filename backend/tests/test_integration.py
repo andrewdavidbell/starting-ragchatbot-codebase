@@ -7,22 +7,19 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from app import app
-
 
 class TestAPIIntegration:
     """Integration tests for FastAPI endpoints"""
 
     @pytest.fixture
-    def client(self):
-        """Create test client for FastAPI app"""
-        return TestClient(app)
+    def client(self, api_test_client):
+        """Use the API test client from conftest"""
+        return api_test_client
 
     @pytest.fixture
-    def mock_rag_system(self):
-        """Mock the RAG system for API testing"""
-        with patch('app.rag_system') as mock_rag:
-            yield mock_rag
+    def mock_rag_system(self, api_test_client):
+        """Get the mock RAG system from the test client"""
+        return api_test_client.app.state.rag_system
 
     @pytest.mark.integration
     def test_query_endpoint_basic(self, client, mock_rag_system):
@@ -314,10 +311,16 @@ class TestAPIIntegration:
 
 class TestAPIRealIntegration:
     """Integration tests with real components (no mocking)"""
-    
+
     @pytest.fixture
     def real_client(self):
         """Create test client with real components"""
+        # Skip if frontend directory doesn't exist (required for real app import)
+        frontend_path = os.path.join(os.path.dirname(__file__), '..', '..', 'frontend')
+        if not os.path.exists(frontend_path):
+            pytest.skip("Frontend directory not found - skipping real integration tests")
+
+        from app import app
         # Note: This uses the actual RAG system, so tests may be slower
         return TestClient(app)
 
@@ -326,10 +329,10 @@ class TestAPIRealIntegration:
     def test_real_courses_endpoint(self, real_client):
         """Test courses endpoint with real RAG system"""
         response = real_client.get("/api/courses")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         assert "total_courses" in data
         assert "course_titles" in data
         assert isinstance(data["total_courses"], int)
@@ -337,14 +340,14 @@ class TestAPIRealIntegration:
 
     @pytest.mark.slow
     @pytest.mark.integration
-    @pytest.mark.requires_api
+    @pytest.mark.requires_api_key
     def test_real_query_endpoint(self, real_client):
         """Test query endpoint with real RAG system (requires API key)"""
         # This test requires a valid ANTHROPIC_API_KEY
         response = real_client.post("/api/query", json={
             "query": "What is 2+2?"
         })
-        
+
         # May succeed or fail depending on system state and API key
         if response.status_code == 200:
             data = response.json()
@@ -359,13 +362,13 @@ class TestAPIRealIntegration:
     def test_api_response_time(self, real_client):
         """Test API response time is reasonable"""
         import time
-        
+
         start_time = time.time()
         response = real_client.get("/api/courses")
         end_time = time.time()
-        
+
         response_time = end_time - start_time
-        
+
         # API should respond within reasonable time (adjust threshold as needed)
         assert response_time < 5.0  # 5 seconds max for courses endpoint
         assert response.status_code == 200
